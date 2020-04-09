@@ -97,6 +97,34 @@ void test__system_property_get() {
 
 
 // --------------------- recv ---------------------  // 指令修复不完全，回调原始函数会崩溃
+
+void onBeforeCallBack(my_pt_regs *regs, HK_INFO *pInfo) {
+    const char *name = "null";
+    if (pInfo) {
+        if (pInfo->methodName) {
+            name = pInfo->methodName;
+        } else {
+            char buf[20];
+            sprintf(buf, "%p", pInfo->pBeHookAddr);
+            name = buf;
+        }
+    }
+}
+
+void onAfterCallBack(my_pt_regs *regs, HK_INFO *pInfo) {
+    const char *name = "null";
+    if (pInfo) {
+        if (pInfo->methodName) {
+            name = pInfo->methodName;
+        } else {
+            char buf[20];
+            sprintf(buf, "%p", pInfo->pBeHookAddr);
+            name = buf;
+        }
+    }
+}
+
+
 typedef ssize_t (*type_recv)(int __fd, void *__buf, size_t __n, int __flags);
 
 type_recv *mOriginalRecv;
@@ -115,13 +143,21 @@ ssize_t my__recv(int __fd, void *__buf, size_t __n, int __flags) {
 }
 
 void test__recv() {
-    const RetInfo info = dump_replace((void *) recv, (void *) (my__recv), NULL, NULL, "recv");
-    if (info.status != success) {
-        LE("hk__recv error = %d", info.status);
-    } else {
-        mOriginalRecv = (type_recv *) (getPoriFun(info.info));
+
+//    const RetInfo info = dump_replace((void *) recv, (void *) (my__recv), NULL, NULL, "recv");
+//    if (info.status != success) {
+//        LE("hk__recv error = %d", info.status);
+//    } else {
+//        mOriginalRecv = (type_recv *) (getPoriFun(info.info));
+//    }
+
+    hk_status status = dumpRet((void *) (recv), onAfterCallBack, "recv");
+    // hk_status status = dump((void *) (recv), onBeforeCallBack, onAfterCallBack, "recv");
+    if (status != success) {
+        LE("hk__recv error");
     }
 }
+
 // --------------------- recv ---------------------
 
 
